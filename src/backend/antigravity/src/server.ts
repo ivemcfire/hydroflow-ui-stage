@@ -32,7 +32,8 @@ server.get('/health', async (request: any, reply: any) => {
 
 const start = async () => {
     try {
-        await server.listen({ port: 3000, host: '0.0.0.0' });
+        const port = process.env.FASTIFY_PORT ? parseInt(process.env.FASTIFY_PORT, 10) : 3001;
+        await server.listen({ port, host: '0.0.0.0' });
         server.log.info(`Server listening on \${server.addresses()[0]}`);
     } catch (err) {
         server.log.error(err);

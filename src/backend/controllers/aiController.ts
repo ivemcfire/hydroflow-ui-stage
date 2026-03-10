@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { GoogleGenAI } from '@google/genai';
 
-const FASTIFY_URL = 'http://localhost:3000';
+const FASTIFY_URL = process.env.FASTIFY_URL || 'http://localhost:3001';
 
 // Initialize the Gemini SDK
 // It automatically picks up GEMINI_API_KEY from process.env

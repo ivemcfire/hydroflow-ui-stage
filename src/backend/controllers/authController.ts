@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 
-const FASTIFY_URL = 'http://localhost:3000';
+const FASTIFY_URL = process.env.FASTIFY_URL || 'http://localhost:3001';
 
 export const login = async (req: Request, res: Response) => {
     try {
