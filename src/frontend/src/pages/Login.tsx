@@ -1,5 +1,5 @@
 // File: src/frontend/src/pages/Login.tsx
-import React from 'react';
+
 import { motion } from 'motion/react';
 import { Droplet, Shield, Eye } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
@@ -8,28 +8,28 @@ const Login = () => {
   const { dispatch } = useAppContext();
 
   const handleLogin = (role: 'admin' | 'view_only') => {
-    const user = role === 'admin' 
+    const user = role === 'admin'
       ? { name: 'Admin User', role: 'admin' as const, initials: 'AU', title: 'System Manager' }
       : { name: 'Guest Viewer', role: 'view_only' as const, initials: 'GV', title: 'Observer' };
-      
+
     dispatch({ type: 'SET_USER', payload: user });
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#f0f7fa] to-[#e0f2fe] flex flex-col items-center justify-center p-6 relative overflow-hidden">
       {/* Animated Background Elements */}
-      <motion.div 
+      <motion.div
         className="absolute top-1/4 left-1/4 w-64 h-64 bg-blue-300/20 rounded-full blur-3xl"
-        animate={{ 
+        animate={{
           scale: [1, 1.2, 1],
           x: [0, 50, 0],
           y: [0, 30, 0]
         }}
         transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
       />
-      <motion.div 
+      <motion.div
         className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-cyan-300/20 rounded-full blur-3xl"
-        animate={{ 
+        animate={{
           scale: [1, 1.3, 1],
           x: [0, -40, 0],
           y: [0, -50, 0]
@@ -37,22 +37,22 @@ const Login = () => {
         transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 1 }}
       />
 
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
         className="bg-white/80 backdrop-blur-xl p-8 md:p-12 rounded-3xl shadow-xl border border-white/50 w-full max-w-md relative z-10"
       >
         <div className="flex flex-col items-center mb-10">
-          <motion.div 
+          <motion.div
             className="bg-gradient-to-br from-[#00a3ff] to-blue-600 p-4 rounded-2xl shadow-lg shadow-blue-200 mb-6 relative"
-            animate={{ 
+            animate={{
               y: [0, -10, 0],
             }}
             transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
           >
             <Droplet size={48} className="fill-white text-white" />
-            <motion.div 
+            <motion.div
               className="absolute inset-0 bg-white/20 rounded-2xl"
               animate={{ opacity: [0, 1, 0] }}
               transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
@@ -64,8 +64,8 @@ const Login = () => {
 
         <div className="space-y-4">
           <p className="text-center text-slate-500 text-sm mb-6">Select a role to continue</p>
-          
-          <button 
+
+          <button
             onClick={() => handleLogin('admin')}
             className="w-full bg-white hover:bg-slate-50 border-2 border-slate-100 hover:border-blue-200 p-4 rounded-2xl flex items-center gap-4 transition-all group"
           >
@@ -78,7 +78,7 @@ const Login = () => {
             </div>
           </button>
 
-          <button 
+          <button
             onClick={() => handleLogin('view_only')}
             className="w-full bg-white hover:bg-slate-50 border-2 border-slate-100 hover:border-blue-200 p-4 rounded-2xl flex items-center gap-4 transition-all group"
           >
