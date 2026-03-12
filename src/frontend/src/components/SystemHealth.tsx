@@ -15,6 +15,16 @@ const SystemHealth = () => {
       <div className="space-y-6">
         <div>
           <div className="flex justify-between items-end mb-2">
+            <span className="text-sm font-medium text-slate-600">System Online</span>
+            <span className="text-sm font-bold text-emerald-600">99.9%</span>
+          </div>
+          <div className="h-2.5 w-full bg-slate-100 rounded-full overflow-hidden">
+            <div className="h-full bg-emerald-500 rounded-full" style={{ width: '99.9%' }}></div>
+          </div>
+        </div>
+
+        <div>
+          <div className="flex justify-between items-end mb-2">
             <span className="text-sm font-medium text-slate-600">Active Pumps</span>
             <span className="text-sm font-bold text-slate-800">2 / 5</span>
           </div>
