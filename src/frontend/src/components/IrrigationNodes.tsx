@@ -1,7 +1,8 @@
 // File: src/frontend/src/components/IrrigationNodes.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, MapPin, Network, Edit2, X, Trash2, Cpu } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
+import { fetchNodes, createNode, updateNode, deleteNode, fetchNodeRules, createNodeRule, deleteNodeRule } from '../services/api';
 
 const NodeCard = ({ node, onEdit, isAdmin }: any) => (
   <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-sm border border-slate-100 flex flex-col h-full hover:shadow-md hover:border-blue-100 transition-all duration-300 group">
@@ -53,23 +54,44 @@ const IrrigationNodes = () => {
   const { state } = useAppContext();
   const isAdmin = state.currentUser?.role === 'admin';
 
-  const [nodes, setNodes] = useState([
-    { id: 1, name: 'North Garden', location: 'Backyard North', hardware: ['Main Pump', 'Zone 1 Valve', 'Soil Sensor', 'Tank Sensor'], rules: 1, status: 'Online', time: '9:58 AM' },
-    { id: 2, name: 'South Greenhouse', location: 'Greenhouse Area', hardware: ['Zone 2 Valve', 'Temp Sensor'], rules: 0, status: 'Online', time: '9:58 AM' },
-  ]);
+  const [nodes, setNodes] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const [editingNode, setEditingNode] = useState<any>(null);
   const [isNewNode, setIsNewNode] = useState(false);
   const [activeTab, setActiveTab] = useState('details');
-  const [rules, setRules] = useState<any[]>([
-    { id: 1, nodeId: 1, sensor: 'Soil Moisture', condition: '<', threshold: '30', action: 'Turn On', component: 'Main Pump' }
-  ]);
+  const [rules, setRules] = useState<any[]>([]);
 
-  const handleEdit = (node: any) => {
+  const loadNodes = async () => {
+    try {
+      const data = await fetchNodes();
+      setNodes(data);
+    } catch (error) {
+      console.error('Failed to load nodes', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadNodes();
+    const interval = setInterval(loadNodes, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleEdit = async (node: any) => {
     if (!isAdmin) return;
     setEditingNode({ ...node });
     setIsNewNode(false);
     setActiveTab('details');
+    
+    // Load rules for this node
+    try {
+      const nodeRules = await fetchNodeRules(node.id);
+      setRules(nodeRules);
+    } catch (error) {
+      console.error('Failed to load rules', error);
+    }
   };
 
   const handleAddNode = () => {
@@ -91,13 +113,31 @@ const IrrigationNodes = () => {
     setEditingNode(null);
   };
 
-  const saveNode = () => {
-    if (isNewNode) {
-      setNodes([...nodes, editingNode]);
-    } else {
-      setNodes(nodes.map(n => n.id === editingNode.id ? editingNode : n));
+  const saveNode = async () => {
+    try {
+      if (isNewNode) {
+        await createNode(editingNode);
+      } else {
+        await updateNode(editingNode.id, editingNode);
+      }
+      await loadNodes();
+      setEditingNode(null);
+    } catch (error) {
+      console.error('Failed to save node', error);
     }
-    setEditingNode(null);
+  };
+
+  const handleDeleteNode = async () => {
+    if (!editingNode || isNewNode) return;
+    if (window.confirm('Are you sure you want to delete this node?')) {
+      try {
+        await deleteNode(editingNode.id);
+        await loadNodes();
+        setEditingNode(null);
+      } catch (error) {
+        console.error('Failed to delete node', error);
+      }
+    }
   };
 
   const addHardware = (comp: string) => {
@@ -108,23 +148,34 @@ const IrrigationNodes = () => {
     setEditingNode({ ...editingNode, hardware: editingNode.hardware.filter((h: string) => h !== comp) });
   };
 
-  const addRule = () => {
+  const addRule = async () => {
     const newRule = {
-      id: Date.now(),
-      nodeId: editingNode.id,
       sensor: 'Soil Moisture',
       condition: '<',
-      threshold: '50',
+      threshold: 50,
       action: 'Turn On',
       component: 'Main Pump'
     };
-    setRules([...rules, newRule]);
-    setEditingNode({ ...editingNode, rules: editingNode.rules + 1 });
+    
+    try {
+      const created = await createNodeRule(editingNode.id, newRule);
+      setRules([...rules, created]);
+      setEditingNode({ ...editingNode, rules: editingNode.rules + 1 });
+      await loadNodes();
+    } catch (error) {
+      console.error('Failed to create rule', error);
+    }
   };
 
-  const removeRule = (ruleId: number) => {
-    setRules(rules.filter(r => r.id !== ruleId));
-    setEditingNode({ ...editingNode, rules: Math.max(0, editingNode.rules - 1) });
+  const removeRule = async (ruleId: string) => {
+    try {
+      await deleteNodeRule(ruleId);
+      setRules(rules.filter(r => r.id !== ruleId));
+      setEditingNode({ ...editingNode, rules: Math.max(0, editingNode.rules - 1) });
+      await loadNodes();
+    } catch (error) {
+      console.error('Failed to delete rule', error);
+    }
   };
 
   return (
@@ -312,13 +363,22 @@ const IrrigationNodes = () => {
               )}
             </div>
 
-            <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex justify-end gap-3">
-              <button onClick={closeEdit} className="px-6 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-100 transition-colors">
-                Cancel
-              </button>
-              <button onClick={saveNode} className="bg-[#00a3ff] text-white px-6 py-2.5 rounded-xl text-sm font-semibold hover:bg-blue-600 transition-colors">
-                {isNewNode ? 'Create Node' : 'Save Changes'}
-              </button>
+            <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex justify-between items-center gap-3">
+              <div>
+                {!isNewNode && (
+                  <button onClick={handleDeleteNode} className="text-red-500 hover:text-red-600 text-sm font-semibold px-4 py-2 hover:bg-red-50 rounded-xl transition-colors">
+                    Delete Node
+                  </button>
+                )}
+              </div>
+              <div className="flex gap-3">
+                <button onClick={closeEdit} className="px-6 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-100 transition-colors">
+                  Cancel
+                </button>
+                <button onClick={saveNode} className="bg-[#00a3ff] text-white px-6 py-2.5 rounded-xl text-sm font-semibold hover:bg-blue-600 transition-colors">
+                  {isNewNode ? 'Create Node' : 'Save Changes'}
+                </button>
+              </div>
             </div>
           </div>
         </div>

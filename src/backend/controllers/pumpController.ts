@@ -1,8 +1,9 @@
 // File: src/backend/controllers/pumpController.ts
 import { Request, Response } from 'express';
+import { addActivityLog } from './activityController';
 
 // Mock DB for now
-const pumps = [
+export const pumps = [
   { id: 'pump-1', name: 'Main Water Pump', status: 'off', flowRate: 0 },
   { id: 'pump-2', name: 'Nutrient Pump A', status: 'on', flowRate: 1.5 },
   { id: 'pump-3', name: 'Nutrient Pump B', status: 'off', flowRate: 0 },
@@ -25,6 +26,12 @@ export const togglePump = (req: Request, res: Response) => {
 
   // In a real app, we would publish to MQTT here
   console.log(`[MQTT] Publishing to topic hydroflow/pumps/${id}/set: ${pump.status}`);
+  
+  // Log the activity
+  addActivityLog(
+    pump.status === 'on' ? 'success' : 'info', 
+    `${pump.name} was turned ${pump.status}`
+  );
 
   res.json(pump);
 };

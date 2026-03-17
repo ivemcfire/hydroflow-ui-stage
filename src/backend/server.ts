@@ -17,11 +17,6 @@ app.use(express.json());
 // API Routes
 app.use('/api', apiRoutes);
 
-// System Status endpoint
-app.get('/api/status', (req, res) => {
-  res.json({ status: 'ok', color: APP_COLOR });
-});
-
 async function startServer() {
   if (process.env.NODE_ENV === 'production') {
     const frontendPath = path.join(__dirname, '../../dist/frontend');

@@ -5,6 +5,7 @@ import Header from './components/Header';
 import Dashboard from './pages/Dashboard';
 import Hardware from './pages/Hardware';
 import Zones from './pages/Zones';
+import HydroFlow from './pages/HydroFlow';
 import Automation from './pages/Automation';
 import Schedule from './pages/Schedule';
 import AdminPanel from './pages/AdminPanel';
@@ -41,6 +42,7 @@ const AppContent = () => {
             <Route path="/" element={<Dashboard />} />
             <Route path="/hardware" element={<Hardware />} />
             <Route path="/zones" element={<Zones />} />
+            <Route path="/hydroflow" element={<HydroFlow />} />
             <Route path="/automation" element={<Automation />} />
             <Route path="/schedule" element={<Schedule />} />
             {currentUser.role === 'admin' && (

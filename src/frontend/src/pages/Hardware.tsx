@@ -1,8 +1,10 @@
 // File: src/frontend/src/pages/Hardware.tsx
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Plus, Activity, X, Edit2, Trash2, Zap } from 'lucide-react';
+import { Plus, Activity, X, Edit2, Trash2, Zap, Loader2 } from 'lucide-react';
 import { PumpIcon, ValveIcon, FlowerIcon, TankIcon } from '../components/CustomIcons';
+import SensorLogs from '../components/SensorLogs';
+import { fetchHardware, fetchAutomations } from '../services/api';
 
 const container = {
   hidden: { opacity: 0 },
@@ -20,43 +22,27 @@ const item = {
 };
 
 const Hardware = () => {
-  const [components, setComponents] = useState([
-    { id: 1, name: 'Main Pump', type: 'Pump', status: 'Online', bg: 'bg-blue-50', isOn: true, zone: 'Main System' },
-    { id: 2, name: 'Zone 1 Valve', type: 'Valve', status: 'Online', bg: 'bg-indigo-50', isOn: false, zone: 'Zone 1' },
-    { id: 3, name: 'Soil Sensor', type: 'Soil Sensor', status: 'Online', bg: 'bg-orange-50', value: 55, zone: 'Zone 1' },
-    { id: 4, name: 'Primary Tank', type: 'Dual IR Sensor', status: 'Online', bg: 'bg-cyan-50', sensor10: true, sensor90: false, zone: 'Main System' },
-    { id: 5, name: 'Secondary Pump', type: 'Pump', status: 'Online', bg: 'bg-blue-50', isOn: false, zone: 'Main System' },
-    { id: 6, name: 'Zone 2 Valve', type: 'Valve', status: 'Online', bg: 'bg-indigo-50', isOn: false, zone: 'Zone 2' },
-  ]);
+  const [components, setComponents] = useState<any[]>([]);
+  const [automations, setAutomations] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const [automations] = useState([
-    { 
-      id: 1, 
-      sourceId: 3, 
-      targets: [
-        { id: 1, action: 'Turn On' },
-        { id: 5, action: 'Turn On' },
-        { id: 2, action: 'Turn On' },
-        { id: 6, action: 'Turn On' }
-      ], 
-      condition: 'Value < 40%', 
-      status: 'Active' 
-    },
-    { 
-      id: 2, 
-      sourceId: 4, 
-      targets: [{ id: 1, action: 'Turn Off' }], 
-      condition: 'Level < 10%', 
-      status: 'Active' 
-    },
-    { 
-      id: 3, 
-      sourceId: 3, 
-      targets: [{ id: 2, action: 'Turn Off' }], 
-      condition: 'Value > 70%', 
-      status: 'Paused' 
-    },
-  ]);
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [comps, autos] = await Promise.all([
+          fetchHardware(),
+          fetchAutomations()
+        ]);
+        setComponents(comps);
+        setAutomations(autos);
+      } catch (error) {
+        console.error('Failed to load hardware data', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadData();
+  }, []);
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [newComp, setNewComp] = useState({ name: '', type: 'Pump', zone: 'Zone 1' });
@@ -70,24 +56,40 @@ const Hardware = () => {
     return acc;
   }, {} as Record<string, typeof components[0][]>);
 
-  const toggleComponent = (id: number) => {
-    setComponents(components.map(comp => {
-      if (comp.id === id && (comp.type === 'Pump' || comp.type === 'Valve')) {
-        return { ...comp, isOn: !comp.isOn };
+  const toggleComponent = async (id: number) => {
+    const compIndex = components.findIndex(c => c.id === id);
+    if (compIndex === -1) return;
+    
+    const comp = components[compIndex];
+    let updatedComp = { ...comp };
+
+    if (comp.type === 'Pump' || comp.type === 'Valve') {
+      updatedComp.isOn = !comp.isOn;
+    } else if (comp.type === 'Dual IR Sensor') {
+      if (!comp.sensor10 && !comp.sensor90) { updatedComp.sensor10 = true; updatedComp.sensor90 = false; }
+      else if (comp.sensor10 && !comp.sensor90) { updatedComp.sensor10 = true; updatedComp.sensor90 = true; }
+      else { updatedComp.sensor10 = false; updatedComp.sensor90 = false; }
+    } else if (comp.type === 'Soil Sensor') {
+      let nextVal = 55;
+      if (comp.value === 55) nextVal = 80;
+      else if (comp.value === 80) nextVal = 30;
+      updatedComp.value = nextVal;
+    }
+
+    try {
+      const response = await fetch(`/api/hardware/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedComp)
+      });
+      if (response.ok) {
+        const newComponents = [...components];
+        newComponents[compIndex] = updatedComp;
+        setComponents(newComponents);
       }
-      if (comp.id === id && comp.type === 'Dual IR Sensor') {
-        if (!comp.sensor10 && !comp.sensor90) return { ...comp, sensor10: true, sensor90: false };
-        if (comp.sensor10 && !comp.sensor90) return { ...comp, sensor10: true, sensor90: true };
-        return { ...comp, sensor10: false, sensor90: false };
-      }
-      if (comp.id === id && comp.type === 'Soil Sensor') {
-        let nextVal = 55;
-        if (comp.value === 55) nextVal = 80;
-        else if (comp.value === 80) nextVal = 30;
-        return { ...comp, value: nextVal };
-      }
-      return comp;
-    }));
+    } catch (error) {
+      console.error('Failed to update component', error);
+    }
   };
 
   const handleAddComponent = () => {
@@ -140,6 +142,14 @@ const Hardware = () => {
     setComponents(components.filter(comp => comp.zone !== editingZone));
     setEditingZone(null);
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#00a3ff]"></div>
+      </div>
+    );
+  }
 
   return (
     <motion.div 
@@ -297,6 +307,10 @@ const Hardware = () => {
           </div>
         </div>
       ))}
+
+      <motion.div variants={item} className="mb-8">
+        <SensorLogs />
+      </motion.div>
 
       {/* Add Component Modal */}
       {isAddModalOpen && (

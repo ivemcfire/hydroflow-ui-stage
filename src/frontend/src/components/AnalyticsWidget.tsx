@@ -1,7 +1,8 @@
 // File: src/frontend/src/components/AnalyticsWidget.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { ChevronDown, BarChart2 } from 'lucide-react';
+import { ChevronDown, BarChart2, Loader2 } from 'lucide-react';
+import { fetchAnalyticsData } from '../services/api';
 
 const graphs = [
   { id: 1, name: 'Water Usage vs AI Optimized', type: 'bar' },
@@ -16,39 +17,55 @@ const graphs = [
   { id: 10, name: 'Crop Yield Estimates', type: 'bar' },
 ];
 
-const mockData = [
-  { name: 'Mon', value1: 4000, value2: 2400 },
-  { name: 'Tue', value1: 3000, value2: 1398 },
-  { name: 'Wed', value1: 2000, value2: 9800 },
-  { name: 'Thu', value1: 2780, value2: 3908 },
-  { name: 'Fri', value1: 1890, value2: 4800 },
-  { name: 'Sat', value1: 2390, value2: 3800 },
-  { name: 'Sun', value1: 3490, value2: 4300 },
-];
-
 const AnalyticsWidget = () => {
   const [selectedGraph, setSelectedGraph] = useState(graphs[0]);
   const [isOpen, setIsOpen] = useState(false);
+  const [graphData, setGraphData] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const loadData = async () => {
+      setIsLoading(true);
+      try {
+        const data = await fetchAnalyticsData(selectedGraph.id);
+        setGraphData(data);
+      } catch (error) {
+        console.error('Failed to load analytics data', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadData();
+  }, [selectedGraph.id]);
 
   const renderGraph = () => {
+    if (isLoading) {
+      return (
+        <div className="w-full h-full flex items-center justify-center text-slate-400">
+          <Loader2 className="animate-spin" size={24} />
+        </div>
+      );
+    }
+
     switch (selectedGraph.type) {
       case 'bar':
         return (
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={mockData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+            <BarChart data={graphData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
               <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} />
               <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} />
               <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
               <Bar dataKey="value1" fill="#00a3ff" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="value2" fill="#34d399" radius={[4, 4, 0, 0]} />
+              {graphData[0]?.value2 !== undefined && <Bar dataKey="value2" fill="#34d399" radius={[4, 4, 0, 0]} />}
             </BarChart>
           </ResponsiveContainer>
         );
       case 'area':
         return (
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={mockData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+            <AreaChart data={graphData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
               <defs>
                 <linearGradient id="colorVal" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#00a3ff" stopOpacity={0.3}/>
@@ -66,7 +83,7 @@ const AnalyticsWidget = () => {
       case 'line':
         return (
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={mockData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+            <LineChart data={graphData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
               <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} />
               <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} />
@@ -81,7 +98,7 @@ const AnalyticsWidget = () => {
   };
 
   return (
-    <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 flex flex-col h-[350px]">
+    <div id="analytics" className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 flex flex-col h-[350px] scroll-mt-24">
       <div className="flex items-center justify-between mb-4 relative">
         <div className="flex items-center gap-2">
           <div className="bg-blue-50 p-2 rounded-lg text-[#00a3ff]">
