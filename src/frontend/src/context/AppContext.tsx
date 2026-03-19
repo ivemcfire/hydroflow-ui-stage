@@ -1,15 +1,6 @@
 // File: src/frontend/src/context/AppContext.tsx
 import React, { createContext, useReducer, useContext, ReactNode } from 'react';
 
-export type UserRole = 'admin' | 'view_only';
-
-export type User = {
-  name: string;
-  role: UserRole;
-  initials: string;
-  title: string;
-};
-
 type Pump = {
   id: string;
   name: string;
@@ -33,7 +24,6 @@ export type AutomationRule = {
 type AppState = {
   systemStatus: SystemStatus | null;
   pumps: Pump[];
-  currentUser: User | null;
   automations: AutomationRule[];
 };
 
@@ -41,7 +31,6 @@ type Action =
   | { type: 'SET_SYSTEM_STATUS'; payload: SystemStatus }
   | { type: 'SET_PUMPS'; payload: Pump[] }
   | { type: 'UPDATE_PUMP'; payload: Pump }
-  | { type: 'SET_USER'; payload: User | null }
   | { type: 'SET_AUTOMATIONS'; payload: AutomationRule[] }
   | { type: 'ADD_AUTOMATION'; payload: AutomationRule }
   | { type: 'UPDATE_AUTOMATION'; payload: AutomationRule }
@@ -79,7 +68,6 @@ const initialAutomations: AutomationRule[] = [
 const initialState: AppState = {
   systemStatus: null,
   pumps: [],
-  currentUser: null,
   automations: initialAutomations,
 };
 
@@ -99,8 +87,6 @@ function appReducer(state: AppState, action: Action): AppState {
         ...state,
         pumps: state.pumps.map((p) => (p.id === action.payload.id ? action.payload : p)),
       };
-    case 'SET_USER':
-      return { ...state, currentUser: action.payload };
     case 'SET_AUTOMATIONS':
       return { ...state, automations: action.payload };
     case 'ADD_AUTOMATION':

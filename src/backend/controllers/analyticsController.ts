@@ -1,6 +1,7 @@
 // File: src/backend/controllers/analyticsController.ts
 import { Request, Response } from 'express';
-import { db } from '../firebase';
+import { db } from '../localDb';
+import { handleFirestoreError, OperationType } from '../utils/errorHandlers';
 
 export interface SensorLog {
   id: string;
@@ -15,11 +16,11 @@ const generateWeeklyData = (base1: number, variance1: number, base2?: number, va
   return days.map(day => {
     const point: any = { name: day };
     
-    let val1 = base1 + (Math.random() * variance1 * 2 - variance1);
+    const val1 = base1 + (Math.random() * variance1 * 2 - variance1);
     point.value1 = isFloat ? Number(val1.toFixed(2)) : Math.round(val1);
     
     if (base2 !== undefined && variance2 !== undefined) {
-      let val2 = base2 + (Math.random() * variance2 * 2 - variance2);
+      const val2 = base2 + (Math.random() * variance2 * 2 - variance2);
       point.value2 = isFloat ? Number(val2.toFixed(2)) : Math.round(val2);
     }
     return point;
@@ -40,6 +41,7 @@ const analyticsDB: Record<number, any[]> = {
 };
 
 export const addSensorLog = async (sensor: string, value: number, unit: string, nodeId?: string) => {
+  const path = 'sensor_logs';
   try {
     const newLog = {
       sensor,
@@ -48,9 +50,9 @@ export const addSensorLog = async (sensor: string, value: number, unit: string, 
       nodeId: nodeId || 'unknown',
       timestamp: new Date().toISOString(),
     };
-    await db.collection('sensor_logs').add(newLog);
+    await db.collection(path).add(newLog);
   } catch (error) {
-    console.error('Error adding sensor log:', error);
+    handleFirestoreError(error, OperationType.CREATE, path);
   }
 };
 
@@ -66,20 +68,20 @@ export const getAnalyticsData = async (req: Request, res: Response) => {
 };
 
 export const getSensorLogs = async (req: Request, res: Response) => {
+  const path = 'sensor_logs';
   try {
-    const snapshot = await db.collection('sensor_logs')
+    const snapshot = await db.collection(path)
       .orderBy('timestamp', 'desc')
       .limit(100)
       .get();
     
-    const logs = snapshot.docs.map(doc => ({
+    const logs = snapshot.docs.map((doc: any) => ({
       id: doc.id,
       ...doc.data()
     }));
     
     res.json(logs);
   } catch (error) {
-    console.error('Error getting sensor logs:', error);
-    res.status(500).json({ error: 'Failed to fetch sensor logs' });
+    handleFirestoreError(error, OperationType.GET, path);
   }
 };

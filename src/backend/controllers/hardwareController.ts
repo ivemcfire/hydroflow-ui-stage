@@ -1,6 +1,7 @@
 // File: src/backend/controllers/hardwareController.ts
 import { Request, Response } from 'express';
-import { db } from '../firebase';
+import { db } from '../localDb';
+import { handleFirestoreError, OperationType } from '../utils/errorHandlers';
 
 export interface HardwareComponent {
   id: string;
@@ -24,9 +25,10 @@ export interface Automation {
 }
 
 export const getComponents = async (req: Request, res: Response) => {
+  const path = 'hardware';
   try {
-    const snapshot = await db.collection('hardware').get();
-    const components = snapshot.docs.map(doc => ({
+    const snapshot = await db.collection(path).get();
+    const components = snapshot.docs.map((doc: any) => ({
       id: doc.id,
       ...doc.data()
     }));
@@ -42,59 +44,63 @@ export const getComponents = async (req: Request, res: Response) => {
       ];
       const batch = db.batch();
       initialComponents.forEach(c => {
-        const ref = db.collection('hardware').doc();
+        const ref = db.collection(path).doc();
         batch.set(ref, c);
       });
       await batch.commit();
-      const newSnapshot = await db.collection('hardware').get();
-      return res.json(newSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      const newSnapshot = await db.collection(path).get();
+      return res.json(newSnapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() })));
     }
 
     res.json(components);
   } catch (error) {
-    console.error('Error getting components:', error);
+    handleFirestoreError(error, OperationType.GET, path);
     res.status(500).json({ error: 'Failed to fetch components' });
   }
 };
 
 export const updateComponent = async (req: Request, res: Response) => {
   const id = req.params.id as string;
+  const path = `hardware/${id}`;
   try {
     const ref = db.collection('hardware').doc(id);
     await ref.update(req.body);
     const updated = await ref.get();
     res.json({ id, ...updated.data() });
   } catch (error) {
-    console.error('Error updating component:', error);
+    handleFirestoreError(error, OperationType.UPDATE, path);
     res.status(500).json({ error: 'Failed to update component' });
   }
 };
 
 export const addComponent = async (req: Request, res: Response) => {
+  const path = 'hardware';
   try {
-    const docRef = await db.collection('hardware').add(req.body);
+    const docRef = await db.collection(path).add(req.body);
     res.status(201).json({ id: docRef.id, ...req.body });
   } catch (error) {
-    console.error('Error adding component:', error);
+    handleFirestoreError(error, OperationType.CREATE, path);
     res.status(500).json({ error: 'Failed to add component' });
   }
 };
 
 export const deleteComponent = async (req: Request, res: Response) => {
   const id = req.params.id as string;
+  const path = `hardware/${id}`;
   try {
     await db.collection('hardware').doc(id).delete();
     res.json({ success: true });
   } catch (error) {
-    console.error('Error deleting component:', error);
+    handleFirestoreError(error, OperationType.DELETE, path);
     res.status(500).json({ error: 'Failed to delete component' });
   }
 };
 
 export const getAutomations = async (req: Request, res: Response) => {
+  const path = 'automations';
   try {
-    const snapshot = await db.collection('automations').get();
-    const automations = snapshot.docs.map(doc => ({
+    const snapshot = await db.collection(path).get();
+    const automations = snapshot.docs.map((doc: any) => ({
       id: doc.id,
       ...doc.data()
     }));
@@ -106,7 +112,7 @@ export const getAutomations = async (req: Request, res: Response) => {
     
     res.json(automations);
   } catch (error) {
-    console.error('Error getting automations:', error);
+    handleFirestoreError(error, OperationType.GET, path);
     res.status(500).json({ error: 'Failed to fetch automations' });
   }
 };

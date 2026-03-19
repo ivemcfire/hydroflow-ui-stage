@@ -61,7 +61,7 @@ const Hardware = () => {
     if (compIndex === -1) return;
     
     const comp = components[compIndex];
-    let updatedComp = { ...comp };
+    const updatedComp = { ...comp };
 
     if (comp.type === 'Pump' || comp.type === 'Valve') {
       updatedComp.isOn = !comp.isOn;

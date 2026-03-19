@@ -1,10 +1,9 @@
 // File: src/frontend/src/components/IrrigationNodes.tsx
 import React, { useState, useEffect } from 'react';
 import { Plus, MapPin, Network, Edit2, X, Trash2, Cpu } from 'lucide-react';
-import { useAppContext } from '../context/AppContext';
 import { fetchNodes, createNode, updateNode, deleteNode, fetchNodeRules, createNodeRule, deleteNodeRule } from '../services/api';
 
-const NodeCard = ({ node, onEdit, isAdmin }: any) => (
+const NodeCard = ({ node, onEdit }: any) => (
   <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-sm border border-slate-100 flex flex-col h-full hover:shadow-md hover:border-blue-100 transition-all duration-300 group">
     <div className="flex justify-between items-start mb-6 gap-4">
       <div className="min-w-0 flex-1">
@@ -18,14 +17,12 @@ const NodeCard = ({ node, onEdit, isAdmin }: any) => (
         <div className="bg-[#f0f7fa] p-2.5 rounded-xl text-[#00a3ff] group-hover:scale-110 group-hover:bg-[#00a3ff] group-hover:text-white transition-all duration-300">
           <Network size={20} />
         </div>
-        {isAdmin && (
-          <button 
-            onClick={() => onEdit(node)}
-            className="bg-white p-2.5 rounded-xl text-slate-400 hover:text-[#00a3ff] shadow-sm border border-slate-100 group-hover:border-blue-100 transition-all"
-          >
-            <Edit2 size={20} />
-          </button>
-        )}
+        <button 
+          onClick={() => onEdit(node)}
+          className="bg-white p-2.5 rounded-xl text-slate-400 hover:text-[#00a3ff] shadow-sm border border-slate-100 group-hover:border-blue-100 transition-all"
+        >
+          <Edit2 size={20} />
+        </button>
       </div>
     </div>
     
@@ -51,11 +48,7 @@ const NodeCard = ({ node, onEdit, isAdmin }: any) => (
 );
 
 const IrrigationNodes = () => {
-  const { state } = useAppContext();
-  const isAdmin = state.currentUser?.role === 'admin';
-
   const [nodes, setNodes] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
 
   const [editingNode, setEditingNode] = useState<any>(null);
   const [isNewNode, setIsNewNode] = useState(false);
@@ -69,7 +62,7 @@ const IrrigationNodes = () => {
     } catch (error) {
       console.error('Failed to load nodes', error);
     } finally {
-      setLoading(false);
+      // Done loading
     }
   };
 
@@ -80,7 +73,6 @@ const IrrigationNodes = () => {
   }, []);
 
   const handleEdit = async (node: any) => {
-    if (!isAdmin) return;
     setEditingNode({ ...node });
     setIsNewNode(false);
     setActiveTab('details');
@@ -95,7 +87,6 @@ const IrrigationNodes = () => {
   };
 
   const handleAddNode = () => {
-    if (!isAdmin) return;
     setEditingNode({
       id: Date.now(),
       name: 'New Node',
@@ -182,25 +173,23 @@ const IrrigationNodes = () => {
     <div>
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-slate-800">Irrigation Nodes</h2>
-        {isAdmin && (
-          <button 
-            onClick={handleAddNode}
-            className="bg-[#0f172a] hover:bg-slate-800 text-white px-4 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5 duration-200"
-          >
-            <Plus size={18} />
-            Add Node
-          </button>
-        )}
+        <button 
+          onClick={handleAddNode}
+          className="bg-[#0f172a] hover:bg-slate-800 text-white px-4 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5 duration-200"
+        >
+          <Plus size={18} />
+          Add Node
+        </button>
       </div>
       
       <div className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fit,minmax(300px,1fr))] gap-6">
         {nodes.map((node) => (
-          <NodeCard key={node.id} node={node} onEdit={handleEdit} isAdmin={isAdmin} />
+          <NodeCard key={node.id} node={node} onEdit={handleEdit} />
         ))}
       </div>
 
       {/* Edit Modal */}
-      {editingNode && isAdmin && (
+      {editingNode && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl w-full max-w-2xl overflow-hidden shadow-xl flex flex-col max-h-[90vh]">
             <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">

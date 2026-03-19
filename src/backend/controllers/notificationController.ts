@@ -1,6 +1,7 @@
 // File: src/backend/controllers/notificationController.ts
 import { Request, Response } from 'express';
-import { db } from '../firebase';
+import { db } from '../localDb';
+import { handleFirestoreError, OperationType } from '../utils/errorHandlers';
 
 export interface Notification {
   id: string;
@@ -11,6 +12,7 @@ export interface Notification {
 }
 
 export const addNotification = async (type: Notification['type'], message: string) => {
+  const path = 'notifications';
   try {
     const newNotif = {
       type,
@@ -18,53 +20,53 @@ export const addNotification = async (type: Notification['type'], message: strin
       read: false,
       timestamp: new Date().toISOString(),
     };
-    await db.collection('notifications').add(newNotif);
+    await db.collection(path).add(newNotif);
   } catch (error) {
-    console.error('Error adding notification:', error);
+    handleFirestoreError(error, OperationType.CREATE, path);
   }
 };
 
 export const getNotifications = async (req: Request, res: Response) => {
+  const path = 'notifications';
   try {
-    const snapshot = await db.collection('notifications')
+    const snapshot = await db.collection(path)
       .orderBy('timestamp', 'desc')
       .limit(50)
       .get();
     
-    const notificationsList = snapshot.docs.map(doc => ({
+    const notificationsList = snapshot.docs.map((doc: any) => ({
       id: doc.id,
       ...doc.data()
     }));
     
     res.json(notificationsList);
   } catch (error) {
-    console.error('Error getting notifications:', error);
-    res.status(500).json({ error: 'Failed to fetch notifications' });
+    handleFirestoreError(error, OperationType.GET, path);
   }
 };
 
 export const markAsRead = async (req: Request, res: Response) => {
   const id = req.params.id as string;
+  const path = `notifications/${id}`;
   try {
     await db.collection('notifications').doc(id).update({ read: true });
     res.json({ success: true });
   } catch (error) {
-    console.error('Error marking notification as read:', error);
-    res.status(500).json({ error: 'Failed to mark notification as read' });
+    handleFirestoreError(error, OperationType.UPDATE, path);
   }
 };
 
 export const markAllAsRead = async (req: Request, res: Response) => {
+  const path = 'notifications';
   try {
-    const snapshot = await db.collection('notifications').where('read', '==', false).get();
+    const snapshot = await db.collection(path).where('read', '==', false).get();
     const batch = db.batch();
-    snapshot.docs.forEach(doc => {
+    snapshot.docs.forEach((doc: any) => {
       batch.update(doc.ref, { read: true });
     });
     await batch.commit();
     res.json({ success: true });
   } catch (error) {
-    console.error('Error marking all notifications as read:', error);
-    res.status(500).json({ error: 'Failed to mark all notifications as read' });
+    handleFirestoreError(error, OperationType.UPDATE, path);
   }
 };

@@ -8,8 +8,6 @@ import Zones from './pages/Zones';
 import HydroFlow from './pages/HydroFlow';
 import Automation from './pages/Automation';
 import Schedule from './pages/Schedule';
-import AdminPanel from './pages/AdminPanel';
-import Login from './pages/Login';
 import WaterDroplets from './components/WaterDroplets';
 import Sidebar from './components/Sidebar';
 import BackToTop from './components/BackToTop';
@@ -18,13 +16,9 @@ import { fetchSystemStatus, fetchPumps } from './services/api';
 
 const AppContent = () => {
   const { state } = useAppContext();
-  const { currentUser, systemStatus } = state;
+  const { systemStatus } = state;
   const location = useLocation();
   const isDashboard = location.pathname === '/';
-
-  if (!currentUser) {
-    return <Login />;
-  }
 
   const appColor = systemStatus?.color || 'Blue';
   const isGreen = appColor.toLowerCase() === 'green';
@@ -45,9 +39,6 @@ const AppContent = () => {
             <Route path="/hydroflow" element={<HydroFlow />} />
             <Route path="/automation" element={<Automation />} />
             <Route path="/schedule" element={<Schedule />} />
-            {currentUser.role === 'admin' && (
-              <Route path="/admin" element={<AdminPanel />} />
-            )}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </div>

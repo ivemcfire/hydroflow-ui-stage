@@ -296,8 +296,8 @@ const HydroFlow = () => {
           {/* Temporary Connection */}
           {connectingFromId && (
             <AnimatedPipe 
-              x1={nodes.find(n => n.id === connectingFromId)?.x! + 60} 
-              y1={nodes.find(n => n.id === connectingFromId)?.y! + 30} 
+              x1={(nodes.find(n => n.id === connectingFromId)?.x ?? 0) + 60} 
+              y1={(nodes.find(n => n.id === connectingFromId)?.y ?? 0) + 30} 
               x2={mousePos.x} 
               y2={mousePos.y} 
             />

@@ -1,6 +1,7 @@
 // File: src/backend/controllers/activityController.ts
 import { Request, Response } from 'express';
-import { db } from '../firebase';
+import { db } from '../localDb';
+import { handleFirestoreError, OperationType } from '../utils/errorHandlers';
 
 export interface ActivityLog {
   id: string;
@@ -10,33 +11,34 @@ export interface ActivityLog {
 }
 
 export const addActivityLog = async (type: ActivityLog['type'], message: string) => {
+  const path = 'activity';
   try {
     const newLog = {
       type,
       message,
       timestamp: new Date().toISOString(),
     };
-    await db.collection('activity').add(newLog);
+    await db.collection(path).add(newLog);
   } catch (error) {
-    console.error('Error adding activity log:', error);
+    handleFirestoreError(error, OperationType.CREATE, path);
   }
 };
 
 export const getActivityLogs = async (req: Request, res: Response) => {
+  const path = 'activity';
   try {
-    const snapshot = await db.collection('activity')
+    const snapshot = await db.collection(path)
       .orderBy('timestamp', 'desc')
       .limit(50)
       .get();
     
-    const logs = snapshot.docs.map(doc => ({
+    const logs = snapshot.docs.map((doc: any) => ({
       id: doc.id,
       ...doc.data()
     }));
     
     res.json(logs);
   } catch (error) {
-    console.error('Error getting activity logs:', error);
-    res.status(500).json({ error: 'Failed to fetch activity logs' });
+    handleFirestoreError(error, OperationType.GET, path);
   }
 };

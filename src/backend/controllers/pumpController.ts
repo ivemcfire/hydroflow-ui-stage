@@ -1,13 +1,15 @@
 // File: src/backend/controllers/pumpController.ts
 import { Request, Response } from 'express';
 import { addActivityLog } from './activityController';
-import { db } from '../firebase';
+import { db } from '../localDb';
 import { publishCommand } from '../services/mqttService';
+import { handleFirestoreError, OperationType } from '../utils/errorHandlers';
 
 export const getPumps = async (req: Request, res: Response) => {
+  const path = 'pumps';
   try {
-    const snapshot = await db.collection('pumps').get();
-    const pumps = snapshot.docs.map(doc => ({
+    const snapshot = await db.collection(path).get();
+    const pumps = snapshot.docs.map((doc: any) => ({
       id: doc.id,
       ...doc.data()
     }));
@@ -22,13 +24,13 @@ export const getPumps = async (req: Request, res: Response) => {
       
       const batch = db.batch();
       initialPumps.forEach(p => {
-        const ref = db.collection('pumps').doc();
+        const ref = db.collection(path).doc();
         batch.set(ref, p);
       });
       await batch.commit();
       
-      const newSnapshot = await db.collection('pumps').get();
-      const newPumps = newSnapshot.docs.map(doc => ({
+      const newSnapshot = await db.collection(path).get();
+      const newPumps = newSnapshot.docs.map((doc: any) => ({
         id: doc.id,
         ...doc.data()
       }));
@@ -37,13 +39,13 @@ export const getPumps = async (req: Request, res: Response) => {
     
     res.json(pumps);
   } catch (error) {
-    console.error('Error getting pumps:', error);
-    res.status(500).json({ error: 'Failed to fetch pumps' });
+    handleFirestoreError(error, OperationType.GET, path);
   }
 };
 
 export const togglePump = async (req: Request, res: Response) => {
   const id = req.params.id as string;
+  const path = `pumps/${id}`;
   
   try {
     const pumpRef = db.collection('pumps').doc(id);
@@ -73,7 +75,6 @@ export const togglePump = async (req: Request, res: Response) => {
 
     res.json({ id, ...pump, status: newStatus, flowRate: newFlowRate });
   } catch (error) {
-    console.error('Error toggling pump:', error);
-    res.status(500).json({ error: 'Failed to toggle pump' });
+    handleFirestoreError(error, OperationType.UPDATE, path);
   }
 };

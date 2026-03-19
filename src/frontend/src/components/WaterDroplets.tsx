@@ -12,10 +12,10 @@ const WaterDroplets = () => {
     if (!ctx) return;
 
     let animationFrameId: number;
-    let droplets: Droplet[] = [];
-    let mouse = { x: -1000, y: -1000, vx: 0, vy: 0 };
-    let lastMouse = { x: -1000, y: -1000 };
-    let cursorDrop = { x: -1000, y: -1000 };
+    const droplets: Droplet[] = [];
+    const mouse = { x: -1000, y: -1000, vx: 0, vy: 0 };
+    const lastMouse = { x: -1000, y: -1000 };
+    const cursorDrop = { x: -1000, y: -1000 };
 
     const resize = () => {
       canvas.width = window.innerWidth;

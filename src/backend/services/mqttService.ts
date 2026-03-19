@@ -1,18 +1,34 @@
 // File: src/backend/services/mqttService.ts
 import mqtt from 'mqtt';
-import { db } from '../firebase';
+import { db } from '../localDb';
 import { addSensorLog } from '../controllers/analyticsController';
 import { addActivityLog } from '../controllers/activityController';
 import { addNotification } from '../controllers/notificationController';
+import { evaluateRulesForSensor } from './automationService';
 
-const MQTT_BROKER = process.env.MQTT_BROKER || 'mqtt://broker.hivemq.com';
+const getMqttBrokerUrl = () => {
+  let url = process.env.MQTT_BROKER || 'ws://broker.hivemq.com:8000/mqtt';
+  if (!url.includes('://')) {
+    console.warn(`MQTT_BROKER "${url}" is missing a protocol. Defaulting to ws://${url}`);
+    url = `ws://${url}`;
+  }
+  return url;
+};
+
+const MQTT_BROKER = getMqttBrokerUrl();
 const MQTT_TOPIC_PREFIX = process.env.MQTT_TOPIC_PREFIX || 'hydroflow';
 
 let client: mqtt.MqttClient | null = null;
 
 export const initMqtt = () => {
-  console.log(`Connecting to MQTT broker: ${MQTT_BROKER}`);
-  client = mqtt.connect(MQTT_BROKER);
+  const clientId = `hydroflow_${Math.random().toString(16).slice(2, 10)}`;
+  console.log(`Connecting to MQTT broker: ${MQTT_BROKER} as ${clientId}`);
+  client = mqtt.connect(MQTT_BROKER, {
+    clientId,
+    reconnectPeriod: 5000,
+    connectTimeout: 30 * 1000,
+    clean: true,
+  });
 
   client.on('connect', () => {
     console.log('Connected to MQTT broker');
@@ -39,7 +55,10 @@ export const initMqtt = () => {
           // 1. Update Firestore with latest sensor reading
           await addSensorLog(sensorName, value, getUnitForSensor(sensorName), nodeId);
 
-          // 2. Check for critical alerts (simplified logic)
+          // 2. Evaluate Automation Rules
+          await evaluateRulesForSensor(nodeId, sensorName, value);
+
+          // 3. Check for critical alerts (simplified logic)
           if (sensorName === 'Tank Level' && value < 10) {
             await addNotification('error', `CRITICAL: Tank Level at ${value}% (via MQTT)`);
           }
@@ -52,6 +71,17 @@ export const initMqtt = () => {
 
   client.on('error', (err) => {
     console.error('MQTT error:', err);
+    if (err.message.includes('ECONNRESET')) {
+      console.log('Connection reset by broker. Retrying...');
+    }
+  });
+
+  client.on('close', () => {
+    console.log('MQTT connection closed');
+  });
+
+  client.on('reconnect', () => {
+    console.log('MQTT client reconnecting...');
   });
 };
 
