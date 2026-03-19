@@ -14,7 +14,7 @@ const forecast = [
 
 const WeatherCard = () => {
   return (
-    <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+    <div id="weather" className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 scroll-mt-24">
       <div className="flex justify-between items-start mb-6">
         <div>
           <h2 className="text-sm font-medium text-slate-500 mb-1">Local Weather</h2>

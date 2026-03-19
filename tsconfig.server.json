@@ -1,19 +1,14 @@
 {
   "compilerOptions": {
-    "composite": true,
     "target": "ES2022",
     "module": "CommonJS",
     "moduleResolution": "node",
     "esModuleInterop": true,
+    "resolveJsonModule": true,
     "strict": true,
     "skipLibCheck": true,
     "outDir": "./dist/backend",
     "rootDir": "./src/backend"
   },
-  "include": [
-    "src/backend/**/*"
-  ],
-  "exclude": [
-    "src/backend/antigravity/**/*"
-  ]
+  "include": ["src/backend/**/*"]
 }
